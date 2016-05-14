@@ -6,20 +6,25 @@ Created on Fri May 13 13:57:47 2016
 """
 
 from functools import wraps
+from classImport import c1
 
 m_dict = {}
 g_dict = {}
-def grouper(mode_dict=None, group=None, modal=True):
+def grouper(mode_dict=None, group=None, modal=True, name=None):
     mode_dict[group] = None
     def decorate(func):
         @wraps(func)
         def modes(*args):
-            if mode_dict[group] == func.__name__:#code:
+            if name is None:
+                funcName = func.__name__
+            else:
+                funcName = name
+            if mode_dict[group] == funcName:#code:
                 active = True
             else:
                 active = False
             if modal:
-                mode_dict[group] = func.__name__#code
+                mode_dict[group] = funcName#code
             else:
                 mode_dict[group] = None
             return func(*args, active=active)
@@ -51,13 +56,13 @@ def g2(val, active=False):
     return 'Working arc'
 
 @gcode(group=2)
-def g91(_, active=False):
+def g91(active=False):
     if active:
         return 'Active ' + str(91)
     return 'Not Active ' + str(91)
     
 @gcode(group=2)
-def g90(_, active=False):
+def g90(active=False):
     if active:
         return 'Active ' + str(90)
     return 'Not Active ' + str(90)
@@ -69,29 +74,26 @@ def m6(_, active=False):
     return 'Start Changing'
 
 @mcode(group=1)    
-def m5(_, active=False):
+def m5(active=False):
     if active:
         return 'Trying'
     return 'Stopping'
 
-class tester():
+class tester(object):
     
     def __init__(self):
-        self.codes = {'y':1, 'z':2}
-        self.generics = []
+        self.codes = {'g93': 1, 'g94': 1, 'x':4}
+        for code, group in self.codes.iteritems():
+            self.__dict__[code] = self.over(code, group)
         
     def x(self):
         print 'x'
     
-    def over(self, code):
-        def generic():
-            print self.codes[code]
+    def over(self, code, group):
+        @gcode(group=group, name=code)
+        def generic(active=False):
+            print 'Is Active: ' + str(active)
+#            print code
+            return code #self.codes[code]
+#        print 'Leaving over'
         return generic
-            
-        
-    def __getattr__(self, name):
-        return self.over(name)
-        
-#    def __class__(self):
-#        print 'Ummm, here'
-    
