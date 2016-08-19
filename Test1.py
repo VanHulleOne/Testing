@@ -4,114 +4,110 @@ Created on Wed Oct 28 10:16:22 2015
 
 @author: lvanhulle
 """
-import Point as p
-#import InFill as infill
-import Shape as s
-import Line as l
-import arc as a
-import math
-import numpy as np
-import copy
-import gcode as gc
-import parameters as pr
-from parameters import constants as c
-import InFill as InF
-from itertools import islice
-import LineGroup as lg
-import doneShapes as ds
-import itertools
-from operator import itemgetter
-import time
-import timeit
-import matrixTrans as mt
-import random
-import bisect
-import collections as col
-
-CW = -1
-CCW = 1
-
-#X, Y = 0, 1
+#import itertools
+#from collections import namedtuple
+#import random
+#from operator import itemgetter
 #
-arc = a.Arc(p.Point(49.642, 9.5), p.Point(28.5, 6.5), CW, p.Point(28.5, 82.5), 20)
+
+
+#def endPoints(points):
+#    end = []
+#    current = [] 
+#    num = 0
+#    for cur_point in points:
+#        num+=1
+#        if(num==1): 
+#            first = cur_point 
+#        previous = current 
+#        current = [] 
+#        previous.append(cur_point) 
+#        current.append(cur_point) 
+#        if(num>1): 
+#            end.append(previous) 
+#    current.append(first)
+#    end.append(current) 
+#    return end
 #
-p1 = p.Point(2.073, 0.0806)
-p2 = p.Point(2.1512, 0.0323)
-p3 = p.Point(2.144081, 0.0389)
-p4 = p.Point(2.0251, 0.1612)
-p5 = p.Point(3,3.0001)
-p6 = p.Point(0,0)
-p7 = p.Point(4,0)
-p8 = p.Point(4,4)
-p9 = p.Point(0,4)
-p10 = p.Point(3,12)
-p11 = p.Point(0,5)
 
+def pairwise1(itr):
+    return list(zip(itr[:-1], itr[1:]))
 
-def endPoints(points):
-    end = []
-    current = [] 
-    num = 0
-    for cur_point in points:
-        num+=1
-        if(num==1): 
-            first = cur_point 
-        previous = current 
-        current = [] 
-        previous.append(cur_point) 
-        current.append(cur_point) 
-        if(num>1): 
-            end.append(previous) 
-    current.append(first)
-    end.append(current) 
-    return end
-    
+def pairwise_gen(l1):
+    l1Iter = iter(l1)
+    pre = next(l1Iter)
+    for curr in l1Iter:
+       yield pre, curr
+       pre = curr
+
 def pairwise(l1):
     l1Iter = iter(l1)
-    first = pre = next(l1Iter)
+    pre = next(l1Iter)
     result = []
     for curr in l1Iter:
         result.append([pre, curr])
         pre = curr
-    result.append([pre, first])
     return result
     
-def pairwise_gen(l1):
-    l1Iter = iter(l1)
-    first = pre = next(l1Iter)
-    for curr in l1Iter:
-       yield [pre, curr]
-       pre = curr
-    yield [pre, first]
+#def pairwise(l1):
+#    l1Iter = iter(l1)
+#    first = pre = next(l1Iter)
+#    result = []
+#    for curr in l1Iter:
+#        result.append([pre, curr])
+#        pre = curr
+#    result.append([pre, first])
+#    return result
+#    
+#def pairwise_gen(l1):
+#    l1Iter = iter(l1)
+#    first = pre = next(l1Iter)
+#    for curr in l1Iter:
+#       yield pre, curr
+#       pre = curr
+#    yield pre, first
     
+#NT = namedtuple('NT', 'letter number')
+#l1 = [i for i in 'edcba']
+#l2 = [i for i in range(len(l1))]
+#l3 = [NT._make(i) for i in zip(l1,l2)]
     
-    
-NT = col.namedtuple('NT', ['X', 'Y', 'Z'])
+#NT = namedtuple('NT', 'X Y Z')
+#NT_One = namedtuple('NT_One', 'Only')
+#
+#x = [1,2]
+#y = ['a','b','c']
+#z = ['V','W','X','Y','Z']
+#
+#def var_gen(inputLists):
+#    if iter(inputLists) is iter(inputLists):
+#        # Tests if inputLists is a generator
+#        iterType = tuple
+#    else:
+#        iterType = type(inputLists)
+#    cycles = map(itertools.cycle, inputLists)
+#        
+#    while 1:
+#        try:
+#            # This is the logic for a named tuple
+#            yield iterType._make(map(next, cycles))
+#        except Exception:
+#            yield iterType(map(next, cycles))
+#        
+#test = []
+#test.append(var_gen(NT(x,y,z))) # namedtuple with multiple fields
+#test.append(var_gen(NT_One(x))) # namedtuple with only one field
+#test.append(var_gen((x,y,z)))   # regular tuple
+#test.append(var_gen([x,y,z]))   # list
+#test.append(var_gen((i for i in (x,y,z)))) # generator
+#
+#for gen in test:
+#    print 'Next Test:'
+#    for i in xrange(10):
+#        print next(gen)
+#    print ' '
 
-    
-# https://en.wikipedia.org/wiki/Pairing_function#Cantor_pairing_function
-    
-def cantorPairing(l1):
-    if len(l1) == 1:
-        return l1[0]
-    k2 = l1[-1]
-    k1 = cantorPairing(l1[:-1])
-    return (0.5*(k1+k2)*(k1+k2+1)+k2)
 
-    
-    
-""" An example of how to do other infills. """  
-#currOutline = ds.rect(0,0,15,250)
-#filledList = []
-#
-#for shellNumber in range(pr.numShells):
-#    filledList.append(currOutline)
-#    currOutline = currOutline.offset(pr.pathWidth, c.INSIDE)
-#
-##pattern = lg.LineGroup()
-##pattern.addLinesFromCoordinateList([[0,0],[2,2],[4,0]])
-#infill = InF.InFill(currOutline, pr.pathWidth, pr.infillAngleDegrees)#, pattern)
-#
-#filledList.append(infill)
-    
+
+
     
